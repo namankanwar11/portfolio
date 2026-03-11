@@ -1,6 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useRef } from "react";
+import SceneWrapper from "@/components/Canvas/SceneWrapper";
+import ParticleField from "@/components/Canvas/ParticleField";
+import { useInView } from "@/hooks/usePerformance";
 
 const experiences = [
   {
@@ -20,10 +24,20 @@ const experiences = [
 ];
 
 export default function About() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const isVisible = useInView(sectionRef);
+
   return (
-    <section id="about" className="relative w-full py-32 px-6 md:px-12 overflow-hidden">
+    <section ref={sectionRef} id="about" className="relative w-full py-32 px-6 md:px-12 overflow-hidden">
       {}
-      <div className="absolute top-20 -left-40 w-80 h-80 bg-neon-blue/10 rounded-full blur-[120px]" />
+      <div className="absolute inset-0 z-0 opacity-40">
+        <SceneWrapper cameraPosition={[0, 0, 10]} active={isVisible}>
+          <ParticleField color="#00d4ff" count={150} spread={15} />
+        </SceneWrapper>
+      </div>
+
+      {}
+      <div className="absolute top-20 -left-40 w-80 h-80 bg-neon-blue/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-20 -right-40 w-80 h-80 bg-neon-purple/10 rounded-full blur-[120px]" />
 
       <div className="max-w-6xl mx-auto relative z-10">

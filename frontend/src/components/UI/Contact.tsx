@@ -3,6 +3,37 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Github, Linkedin, Mail } from "lucide-react";
+import ReCAPTCHA from "react-google-recaptcha";
+import SceneWrapper from "@/components/Canvas/SceneWrapper";
+import TerminalScene from "@/components/Canvas/TerminalScene";
+import DevOverlay from "@/components/UI/DevOverlay";
+import { useInView } from "@/hooks/usePerformance";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+const BLOCKED_PATTERNS = [
+  /<script[\s>]/i,
+  /<\/script>/i,
+  /DROP\s+TABLE/i,
+  /SELECT\s+\*/i,
+  /INSERT\s+INTO/i,
+  /UNION\s+SELECT/i,
+  /javascript:/i,
+  /on\w+\s*=/i,
+  /\$where/i,
+  /\$gt/i,
+  /\$ne/i,
+];
+
+function sanitizeInput(str: string): string {
+  return str.replace(/<[^>]*>/g, "").trim();
+}
+
+function containsSuspiciousPattern(str: string): boolean {
+  return BLOCKED_PATTERNS.some((p) => p.test(str));
+}
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface TerminalLine {
   type: "system" | "input" | "output" | "error" | "success";
@@ -12,8 +43,8 @@ interface TerminalLine {
 const socialLinks = [
   {
     icon: Mail,
-    label: "namankanwar.nsut@gmail.com",
-    href: "mailto:namankanwar.nsut@gmail.com",
+    label: "namankanwar11@gmail.com",
+    href: "mailto:namankanwar11@gmail.com",
     color: "#ff006e",
   },
   {
@@ -31,8 +62,11 @@ const socialLinks = [
 ];
 
 export default function Contact() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const isVisible = useInView(sectionRef);
+
   const [lines, setLines] = useState<TerminalLine[]>([
-    { type: "system", text: "KANWAR AI Communication Interface v2.0" },
+    { type: "system", text: "KANWAR-AI COM-LINK ESTABLISHED." },
     { type: "system", text: "─────────────────────────────────────" },
     { type: "system", text: "Available commands:" },
     { type: "output", text: "  connect    — Send a connection request" },
@@ -53,6 +87,7 @@ export default function Contact() {
   });
   const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   const scrollToBottom = () => {
     if (terminalRef.current) {
@@ -66,57 +101,92 @@ export default function Contact() {
     setLines((prev) => [...prev, { type, text }]);
   };
 
-  const handleCommand = (cmd: string) => {
-    const trimmed = cmd.trim().toLowerCase();
+  const handleCommand = async (cmd: string) => {
+    const trimmed = cmd.trim();
     addLine("input", `> ${cmd}`);
 
+    if (formStep === "sending") return;
+
     if (formStep === "name") {
-      setFormData((p) => ({ ...p, name: cmd.trim() }));
-      addLine("success", `Name: ${cmd.trim()}`);
-      addLine("system", "Enter your email:");
+      if (containsSuspiciousPattern(trimmed)) {
+        addLine("error", "SECURITY ALERT: Suspicious input detected.");
+        setFormStep("idle");
+        return;
+      }
+      const sanitized = sanitizeInput(trimmed);
+      if (sanitized.length < 2) {
+        addLine("error", "Name too short.");
+        return;
+      }
+      setFormData((prev) => ({ ...prev, name: sanitized }));
+      addLine("system", `Name accepted: ${sanitized}`);
+      addLine("system", "Enter your email address:");
       setFormStep("email");
       setInput("");
       return;
     }
+
     if (formStep === "email") {
-      if (!cmd.includes("@")) {
-        addLine("error", "Invalid email. Try again:");
-        setInput("");
+      const sanitized = sanitizeInput(trimmed);
+      if (!EMAIL_REGEX.test(sanitized)) {
+        addLine("error", "Invalid email format. Try again:");
         return;
       }
-      setFormData((p) => ({ ...p, email: cmd.trim() }));
-      addLine("success", `Email: ${cmd.trim()}`);
+      setFormData((prev) => ({ ...prev, email: sanitized }));
+      addLine("system", `Email accepted: ${sanitized}`);
       addLine("system", "Enter your message:");
       setFormStep("msg");
       setInput("");
       return;
     }
-    if (formStep === "msg") {
-      setFormData((p) => ({ ...p, message: cmd.trim() }));
-      addLine("success", `Message: ${cmd.trim()}`);
-      addLine("system", "Transmitting to Naman...");
-      setFormStep("sending");
-      setInput("");
 
-      fetch("http://localhost:5000/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, message: cmd.trim() }),
-      })
-        .then((res) => res.json())
-        .then(() => {
+    if (formStep === "msg") {
+      if (containsSuspiciousPattern(trimmed)) {
+        addLine("error", "SECURITY ALERT: Suspicious content detected.");
+        setFormStep("idle");
+        return;
+      }
+      const sanitized = sanitizeInput(trimmed);
+      if (sanitized.length < 5) {
+        addLine("error", "Message too short.");
+        return;
+      }
+
+      const payload = { ...formData, message: sanitized };
+      setFormStep("sending");
+      addLine("system", "Verifying human identity...");
+
+      try {
+        let token = "dummy-token";
+        if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY !== "dummy-key-for-dev") {
+           token = await recaptchaRef.current?.executeAsync() || "";
+        }
+        if (!token) throw new Error("Verification failed");
+
+        addLine("system", "Transmitting data to kanwar-ai secure servers...");
+
+        const res = await fetch(`${API_URL}/api/contact`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, recaptchaToken: token }),
+        });
+
+        if (res.ok) {
           addLine("success", "✓ Message transmitted successfully!");
           addLine("system", "Naman will respond shortly.");
-          setFormStep("idle");
-        })
-        .catch(() => {
-          addLine("error", "Transmission failed. Try again later.");
-          setFormStep("idle");
-        });
+        } else {
+          addLine("error", "Transmission failed. Server rejected the payload.");
+        }
+      } catch (err) {
+        addLine("error", "Transmission failed. Verification unsuccessful.");
+      } finally {
+        recaptchaRef.current?.reset();
+        setFormStep("idle");
+      }
       return;
     }
 
-    switch (trimmed) {
+    switch (trimmed.toLowerCase()) {
       case "connect":
       case "message":
       case "send":
@@ -126,7 +196,7 @@ export default function Contact() {
         break;
       case "socials":
         addLine("system", "Social channels:");
-        addLine("output", "  📧 namankanwar.nsut@gmail.com");
+        addLine("output", "  📧 namankanwar11@gmail.com");
         addLine("output", "  🔗 linkedin.com/in/naman-kanwar-355061232");
         addLine("output", "  💻 github.com/namankanwar11");
         break;
@@ -160,11 +230,18 @@ export default function Contact() {
 
   return (
     <section
+      ref={sectionRef}
       id="contact"
       className="relative w-full py-32 px-6 md:px-12 overflow-hidden"
     >
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-      <div className="absolute bottom-0 -left-40 w-80 h-80 bg-neon-pink/5 rounded-full blur-[150px]" />
+      <div className="absolute inset-0 z-0 opacity-40">
+        <SceneWrapper cameraPosition={[0, 0, 8]} active={isVisible}>
+          <TerminalScene />
+        </SceneWrapper>
+      </div>
+
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+      <div className="absolute bottom-0 -left-40 w-80 h-80 bg-neon-pink/5 rounded-full blur-[150px] pointer-events-none" />
 
       <div className="max-w-5xl mx-auto relative z-10">
         <motion.div
@@ -188,12 +265,23 @@ export default function Contact() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {}
           <motion.div
-            className="md:col-span-2"
+            className="md:col-span-2 relative"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
+            <DevOverlay 
+              data={{
+                "Route": "POST /api/contact",
+                "WAF Rules": "XSS & SQLi Blacklist",
+                "Rate Limiting": "10 req / 15m window",
+                "Bot Defense": "Invisible reCAPTCHA v3",
+                "Transport": "JSON over HTTPS"
+              }} 
+              position="top-right" 
+              className="-mt-5 -mr-5" 
+            />
             {}
             <div className="flex items-center gap-2 px-4 py-2.5 bg-white/5 rounded-t-xl border border-white/10 border-b-0">
               <div className="w-3 h-3 rounded-full bg-red-500/70" />
@@ -245,10 +333,24 @@ export default function Contact() {
                   className="flex-1 bg-transparent text-white focus:outline-none caret-neon-blue"
                   placeholder={formStep === "idle" ? "Type a command..." : ""}
                   autoComplete="off"
+                  disabled={formStep === "sending"}
                 />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-neon-pink/10 text-neon-pink hover:bg-neon-pink/20 rounded-lg text-xs font-mono border border-neon-pink/50 transition-colors"
+                  disabled={formStep === "sending"}
+                >
+                  {formStep === "sending" ? "TRANSMITTING..." : "EXECUTE"}
+                </button>
               </form>
             </div>
           </motion.div>
+
+          <ReCAPTCHA
+            ref={recaptchaRef}
+            size="invisible"
+            sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "dummy-key-for-dev"}
+          />
 
           {}
           <motion.div

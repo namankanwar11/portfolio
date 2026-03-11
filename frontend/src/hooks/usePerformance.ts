@@ -2,11 +2,7 @@
 
 import { useEffect, useState, useRef, RefObject } from "react";
 
-/**
- * Returns true when the element is visible in the viewport.
- * Uses IntersectionObserver for zero-cost visibility detection.
- * 3D scenes should use this to pause rendering when offscreen.
- */
+
 export function useInView(
   ref: RefObject<HTMLElement | null>,
   margin: string = "200px",
@@ -29,10 +25,7 @@ export function useInView(
   return inView;
 }
 
-/**
- * Returns true when the browser tab is visible.
- * All rendering/physics should pause when tab is hidden.
- */
+
 export function useTabVisible(): boolean {
   const [visible, setVisible] = useState(true);
 
@@ -45,10 +38,7 @@ export function useTabVisible(): boolean {
   return visible;
 }
 
-/**
- * Simple adaptive quality hook.
- * Monitors FPS and automatically lowers quality when performance drops.
- */
+
 export function useAdaptiveQuality(): { quality: "high" | "medium" | "low" } {
   const [quality, setQuality] = useState<"high" | "medium" | "low">("high");
   const framesRef = useRef(0);

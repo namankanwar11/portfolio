@@ -5,10 +5,7 @@ import { Suspense, ReactNode, useEffect } from "react";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { useTabVisible } from "@/hooks/usePerformance";
 
-/**
- * Pauses the entire render loop when the browser tab is hidden.
- * This alone can save 90%+ GPU when the user switches tabs.
- */
+
 function TabPause() {
   const tabVisible = useTabVisible();
   const { gl } = useThree();

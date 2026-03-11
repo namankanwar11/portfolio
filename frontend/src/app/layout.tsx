@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { DeveloperProvider } from "@/hooks/useDeveloper";
+import DevToggle from "@/components/UI/DevToggle";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -21,7 +23,10 @@ export default function RootLayout({
         className={`${inter.className} bg-[#030712] text-gray-100 antialiased`}
         suppressHydrationWarning
       >
-        {children}
+        <DeveloperProvider>
+          {children}
+          <DevToggle />
+        </DeveloperProvider>
       </body>
     </html>
   );

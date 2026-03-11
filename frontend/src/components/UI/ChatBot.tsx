@@ -3,6 +3,11 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, X, Send, Bot } from "lucide-react";
+import DevOverlay from "@/components/UI/DevOverlay";
+
+function sanitizeChatInput(str: string): string {
+  return str.replace(/<[^>]*>/g, "").slice(0, 500).trim();
+}
 
 interface Message {
   role: "user" | "ai";
@@ -48,13 +53,13 @@ const knowledgeBase: Record<string, string> = {
     "At Loan Hundi, Naman developed AI chatbots for customer onboarding and automated tier-1 support, improving conversion rates and reducing response latency.",
 
   contact:
-    "You can reach Naman at: Email: namankanwar.nsut@gmail.com | LinkedIn: linkedin.com/in/naman-kanwar-355061232 | GitHub: github.com/namankanwar11. Or scroll down to the Contact section!",
-  email: "Naman's email is namankanwar.nsut@gmail.com",
+    "You can reach Naman at: Email: namankanwar11@gmail.com | LinkedIn: linkedin.com/in/naman-kanwar-355061232 | GitHub: github.com/namankanwar11. Or scroll down to the Contact section!",
+  email: "Naman's email is namankanwar11@gmail.com",
   linkedin:
     "Naman's LinkedIn: https://www.linkedin.com/in/naman-kanwar-355061232/",
   github:
     "Naman's GitHub: https://github.com/namankanwar11 — Check out his pinned repos!",
-  hire: "Interested in hiring Naman? He's open to opportunities in AI/ML, backend engineering, and cybersecurity. Reach out at namankanwar.nsut@gmail.com or use the contact form below!",
+  hire: "Interested in hiring Naman? He's open to opportunities in AI/ML, backend engineering, and cybersecurity. Reach out at namankanwar11@gmail.com or use the contact form below!",
 
   game: "Try the 'Defend the AI Core' mini-game! It's a cyberpunk defense simulation where you protect an AI core from corrupted data packets. Scroll to the Game section or click 'Game' in the navbar.",
 
@@ -112,13 +117,13 @@ export default function ChatBot() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const userMsg: Message = { role: "user", content: input.trim() };
+    const userMsg: Message = { role: "user", content: sanitizeChatInput(input) };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
 
     setTimeout(
       () => {
-        const response = findResponse(input);
+        const response = findResponse(sanitizeChatInput(input));
         setMessages((prev) => [...prev, { role: "ai", content: response }]);
       },
       400 + Math.random() * 400,
@@ -163,6 +168,17 @@ export default function ChatBot() {
                 "0 25px 50px rgba(0,0,0,0.5), 0 0 30px rgba(168,85,247,0.1)",
             }}
           >
+            <DevOverlay 
+              data={{
+                "Model": "Heuristic NLP Pattern Matcher",
+                "Sanitization": "Regex HTML strip (0-500 chars)",
+                "Analytics": "socket.io (event: chatbot_message)",
+                "Latency": "Simulated 400ms-800ms",
+                "Knowledge Base": "Local O(1) Hash Map"
+              }} 
+              position="top-left" 
+              className="-ml-[260px] top-4 pointer-events-none hidden md:block" 
+            />
             {}
             <div className="px-5 py-3.5 flex items-center gap-3 border-b border-white/5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-neon-blue to-neon-purple">

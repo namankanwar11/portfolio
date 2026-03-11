@@ -1,6 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useRef } from "react";
+import SceneWrapper from "@/components/Canvas/SceneWrapper";
+import ParticleField from "@/components/Canvas/ParticleField";
+import { useInView } from "@/hooks/usePerformance";
 
 const timelineData = [
   {
@@ -41,13 +45,23 @@ const timelineData = [
 ];
 
 export default function Timeline() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const isVisible = useInView(sectionRef);
+
   return (
     <section
+      ref={sectionRef}
       id="timeline"
       className="relative w-full py-32 px-6 overflow-hidden"
     >
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-      <div className="absolute top-40 right-0 w-80 h-80 bg-neon-blue/5 rounded-full blur-[150px]" />
+      <div className="absolute inset-0 z-0 opacity-30">
+        <SceneWrapper cameraPosition={[0, 0, 10]} active={isVisible}>
+          <ParticleField color="#ff006e" count={100} spread={15} />
+        </SceneWrapper>
+      </div>
+
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+      <div className="absolute top-40 right-0 w-80 h-80 bg-neon-blue/5 rounded-full blur-[150px] pointer-events-none" />
 
       <div className="max-w-4xl mx-auto relative z-10">
         <motion.div

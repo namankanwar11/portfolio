@@ -14,6 +14,31 @@ import SmoothScroll from "@/components/UI/SmoothScroll";
 import ChatBot from "@/components/UI/ChatBot";
 import SoundToggle from "@/components/UI/SoundToggle";
 import { audioManager } from "@/audio/audioManager";
+import { useAnalytics } from "@/hooks/useAnalytics";
+
+function SectionTracker({ name, children }: { name: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { trackEvent } = useAnalytics();
+  const tracked = useRef(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !tracked.current) {
+          tracked.current = true;
+          trackEvent("section_view", name);
+        }
+      },
+      { threshold: 0.3 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [name, trackEvent]);
+
+  return <div ref={ref}>{children}</div>;
+}
 
 const navItems = [
   { label: "About", href: "#about" },
@@ -211,14 +236,14 @@ export default function Home() {
       <SmoothScroll>
         <main className="min-h-screen bg-dark-bg relative">
           <Navbar />
-          <Hero />
-          <About />
-          <Skills />
-          <Projects />
-          <AIPlayground />
-          <Timeline />
-          <GameSection />
-          <Contact />
+          <SectionTracker name="hero"><Hero /></SectionTracker>
+          <SectionTracker name="about"><About /></SectionTracker>
+          <SectionTracker name="skills"><Skills /></SectionTracker>
+          <SectionTracker name="projects"><Projects /></SectionTracker>
+          <SectionTracker name="ailab"><AIPlayground /></SectionTracker>
+          <SectionTracker name="timeline"><Timeline /></SectionTracker>
+          <SectionTracker name="game"><GameSection /></SectionTracker>
+          <SectionTracker name="contact"><Contact /></SectionTracker>
           <ChatBot />
           <SoundToggle />
 

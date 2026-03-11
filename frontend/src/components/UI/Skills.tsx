@@ -1,6 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useRef } from "react";
+import SceneWrapper from "@/components/Canvas/SceneWrapper";
+import ParticleField from "@/components/Canvas/ParticleField";
+import { useInView } from "@/hooks/usePerformance";
 
 const skillCategories = [
   {
@@ -76,12 +80,22 @@ const skillCategories = [
 ];
 
 export default function Skills() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const isVisible = useInView(sectionRef);
+
   return (
     <section
+      ref={sectionRef}
       id="skills"
       className="relative w-full py-32 px-6 md:px-12 overflow-hidden"
     >
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-neon-purple/5 rounded-full blur-[150px]" />
+      <div className="absolute inset-0 z-0 opacity-40">
+        <SceneWrapper cameraPosition={[0, 0, 10]} active={isVisible}>
+          <ParticleField color="#a855f7" count={150} spread={15} />
+        </SceneWrapper>
+      </div>
+
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-neon-purple/5 rounded-full blur-[150px] pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative z-10">
         <motion.div
